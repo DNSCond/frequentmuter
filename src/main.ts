@@ -15,8 +15,8 @@ Devvit.addSettings([
         name: 'timeframe',
         label: 'define Y here. must be greater than 500',
         helpText: `1 hour is ${OneHourInSeconds} seconds, 1 day is ${OneDayInSeconds}`,
-        defaultValue: OneDayInSeconds, //required: true,
-        onValidate: validateRangeInt('Y', 500, Infinity),
+        defaultValue: OneHourInSeconds, //required: true,
+        onValidate: validateRangeInt('Y', 300, Infinity),
       },
       {
         type: 'number',
@@ -39,7 +39,7 @@ Devvit.addSettings([
         ],
       },
       {
-        type: 'string',
+        type: 'paragraph',
         name: 'messageUponMute',
         label: 'a message to send when the author gets muted. not including the default',
         defaultValue,
@@ -51,13 +51,20 @@ Devvit.addSettings([
 Devvit.addTrigger({
   event: 'ModMail',
   async onEvent(event: ModMail, context: TriggerContext) {
+    // devvit discord: <https://discord.com/channels/1050224141732687912/1131417992706674818/1428412048911503471>
+    const messageHandledKey = `messageHandled:${event.messageId}`;
+    if (await context.redis.exists(messageHandledKey)) {
+      return;
+    }
+    await context.redis.set(messageHandledKey, "true", { expiration: ResolveSecondsAfter(OneDayInSeconds) });
+
     const conversationResponse = await context.reddit.modMail.getConversation({
       conversationId: event.conversationId,
-    }), date = new Date(event.createdAt ?? new Date);
-    if (!conversationResponse.conversation) return;
+    }), { conversation } = conversationResponse; // , date = new Date(event.createdAt ?? new Date);
+    if (!conversation) return;
     if (!event.messageAuthor) return;
 
-    const messagesInConversation = Object.values(conversationResponse.conversation.messages);
+    const messagesInConversation = Object.values(conversation.messages);
     const firstMessage = messagesInConversation[0];
     if (!firstMessage.id) return;
     //const isFirstMessage = event.messageId.includes(firstMessage.id);
@@ -69,7 +76,18 @@ Devvit.addTrigger({
     const userId = event.messageAuthor.id;
     const key = `userId-${userId}`;
     const { redis } = context;
-    if (isMod || isAdmin) return;
+    if (isMod || isAdmin) {
+      if (isMod) {
+        // conversation.participant?.id = about 153573674696316
+
+        const userName = conversation.participant?.name;
+        if (userName) {
+          const key = `userId-${(await context.reddit.getUserByUsername(userName))?.id}`;
+          await redis.del(key);
+        }
+      }
+      return;
+    }
     const timeframe = await context.settings.get('timeframe');
     if (!timeframe) return;
     const messagesSent = await redis.incrBy(key, 1);
@@ -91,6 +109,54 @@ Devvit.addTrigger({
       }
     }
   },
+});
+
+
+
+const usernameEvalForm = Devvit.createForm(
+  {
+    fields: [
+      {
+        type: 'string',
+        name: 'username',
+        label: 'Enter a username',
+        helpText: 'the user you want to evaluate. (without u/)',
+        required: true,
+      },
+    ],
+    title: 'Evaluate User',
+    acceptLabel: 'Submit',
+  },
+  async function (event, context) {
+    const currentUsername = await context.reddit.getCurrentUsername();
+
+
+    if (currentUsername === undefined) return;
+    const username: string = event.values.username.trim().replace(/^u\//, '') ?? '[undefined]';
+    if (/^[a-zA-Z0-9\-_]+$/.test(username)) {
+      const id = (await context.reddit.getUserByUsername(username))?.id;
+      if (id === undefined) {
+        context.ui.showToast(`username does not exist or devvit couldnt find it`);
+        return;
+      }
+      const messagesSent = await context.redis.get(`userId-${id}`);
+      context.ui.showToast(`they send ${messagesSent} messages in the timeframe. speak to them as moderator to reset the timeframe`);
+    } else if (username === '[undefined]') {
+      context.ui.showToast({ text: `there was no username given` });
+    } else {
+      context.ui.showToast({ text: `that username is syntactically invalid` });
+    }
+  }
+);
+
+Devvit.addMenuItem({
+  label: 'Query User RateLimit',
+  description: 'check for a particular user',
+  location: 'subreddit',
+  forUserType: 'moderator',
+  async onPress(_event, context) {
+    context.ui.showForm(usernameEvalForm);
+  }
 });
 
 export default Devvit; // validateRangeInt('', minInclusive, maxInclusives)
@@ -144,4 +210,8 @@ function printLn(varaibles: any) {
     result.push(variable);
   }
   return result.join('; ');
+}
+
+function ResolveSecondsAfter(s: number = 0, now?: Date | string | number): Date {
+  return new Date((new Date(now ?? Date.now())).setMilliseconds(0) + (+s) * 1000);
 }
