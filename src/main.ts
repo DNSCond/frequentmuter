@@ -34,9 +34,9 @@ Devvit.addSettings([
         defaultValue: ['72'],
         //required: true,
         options: [
-          { label: '3 days (259 200s)', value: '72' },
-          { label: '7 days (604 800s)', value: '168' },
-          { label: '28 days (2 419 200s)', value: '672' },
+          { label: '3 days (about 259 200s)', value: '72' },
+          { label: '7 days (about 604 800s)', value: '168' },
+          { label: '28 days (about 2 419 200s)', value: '672' },
         ],
       },
       {
