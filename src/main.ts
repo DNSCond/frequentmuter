@@ -103,7 +103,7 @@ Devvit.addTrigger({
     await redis.expire(key, +timeframe);
     const messagesRequireMent = await context.settings.get<number>('messages'),
       muteTimeCustom = +(await context.settings.get<number>('muteTimeCustom') as number),
-      muteTime = +(await context.settings.get('muteTime'))!, hasCustom = !Number.isNaN(muteTimeCustom);
+      muteTime = +(await context.settings.get('muteTime'))!, hasCustom = !!(muteTimeCustom);
     if (messagesRequireMent && muteTime) {
       if (messagesSent > messagesRequireMent) {
         const now = Date.now(), runAt = ResolveSecondsAfter(muteTimeCustom, now);
