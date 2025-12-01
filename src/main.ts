@@ -5,16 +5,24 @@ import { EXMAScript, jsonEncode } from "anthelpers";
 Devvit.configure({ redditAPI: true, redis: true });
 const OneDayInSeconds = 86400, OneHourInSeconds = 3600;
 const defaultValue = "You have been muted for spamming this subreddit\'s modmail (exceeding a message in time treshold)." +
-  "\n\nplease make sure to think before you speak and send 1 message with everything you have to say instead of several.";
+  "\n\nplease make sure to think before you speak and send 1 message with everything you have to say instead of several.",
+  messageUponBanPost = 'You have been Banned for spamming this subreddit.';
 Devvit.addSettings([
   {
     type: 'group',
-    label: 'send X messages in Y seconds and receive a Z mute',
+    label: 'send X messages in modmail in Y seconds and receive a Z mute',
     fields: [
+      {
+        type: 'boolean',
+        name: 'modmailEnabled',
+        label: 'whether to take action for spamming modmail',
+        helpText: `if turned off, no muting will occur, but the count will happend`,
+        defaultValue: true,
+      },
       {
         type: 'number',
         name: 'timeframe',
-        label: 'define Y here. must be greater than 500',
+        label: 'define Y here. must be greater than 300',
         helpText: `1 hour is ${OneHourInSeconds} seconds, 1 day is ${OneDayInSeconds}`,
         defaultValue: OneHourInSeconds, //required: true,
         onValidate: validateRangeInt('Y', 300, Infinity),
@@ -42,7 +50,7 @@ Devvit.addSettings([
       {
         type: 'number',
         name: 'muteTimeCustom',
-        label: 'have the bot automatically unmute a user',
+        label: 'have the bot automatically unmute a user after seconds',
         helpText: `should not be greater than Z, must be between 17 and ${OneDayInSeconds * 27} inclusive, or 0 to not automatically unmute`,
         defaultValue: 0, //required: true,
         onValidate: validateRangeInt('X', 17, OneDayInSeconds * 27, true),
@@ -53,6 +61,50 @@ Devvit.addSettings([
         label: 'a message to send when the author gets muted. not including the default',
         helpText: 'supports modmail markdown',
         defaultValue,
+      },
+    ],
+  },
+  {
+    type: 'group',
+    label: 'create X Posts in Y seconds and receive a Z Ban',
+    fields: [
+      {
+        type: 'boolean',
+        name: 'postsEnabled',
+        label: 'whether to take action for spamming posts',
+        helpText: `if turned off, no bamning will occur for posts, but the count will happend`,
+        defaultValue: false,
+      },
+      {
+        type: 'number',
+        name: 'timeframePosts',
+        label: 'define Y here. must be greater than 100',
+        helpText: `1 hour is ${OneHourInSeconds} seconds, 1 day is ${OneDayInSeconds}`,
+        defaultValue: OneHourInSeconds, //required: true,
+        onValidate: validateRangeInt('PostY', 100, Infinity),
+      },
+      {
+        type: 'number',
+        name: 'numberOfPosts',
+        label: 'the number of posts to allow',
+        helpText: 'must be betwen 1 and 100 (define X here)',
+        defaultValue: 7, //required: true,
+        onValidate: validateRangeInt('PostX', 1, 100),
+      },
+      {
+        type: 'number',
+        name: 'BanTimePosts',
+        label: 'the time to Ban in days (define Z here)',
+        helpText: 'must be betwen 1 and 20 (define Z here) or 0 to not ban',
+        defaultValue: 0, //required: true,
+        onValidate: validateRangeInt('PostZ', 1, 20, true),
+      },
+      {
+        type: 'paragraph',
+        name: 'messageUponBanPost',
+        label: 'a message to send when the author gets banned for spamming posts. not including the default',
+        helpText: 'supports modmail markdown',
+        defaultValue: messageUponBanPost,
       },
     ],
   }
@@ -103,9 +155,10 @@ Devvit.addTrigger({
     await redis.expire(key, +timeframe);
     const messagesRequireMent = await context.settings.get<number>('messages'),
       muteTimeCustom = +(await context.settings.get<number>('muteTimeCustom') as number),
-      muteTime = +(await context.settings.get('muteTime'))!, hasCustom = !!(muteTimeCustom);
+      muteTime = +(await context.settings.get('muteTime'))!, hasCustom = !!(muteTimeCustom),
+      modmailEnabled = (await context.settings.get<boolean>('modmailEnabled'));
     if (messagesRequireMent && muteTime) {
-      if (messagesSent > messagesRequireMent) {
+      if (messagesSent > messagesRequireMent && modmailEnabled) {
         const now = Date.now(), runAt = ResolveSecondsAfter(muteTimeCustom, now);
         let body = String((await context.settings.get('messageUponMute')) || defaultValue);
         if (hasCustom) {
@@ -127,6 +180,31 @@ Devvit.addTrigger({
           const expiration = runAt;// being set here
           await context.redis.set(muteDurationRedisKey, jsonEncode({ expiration, jobId }), { expiration });
         }
+      }
+    }
+  },
+});
+
+Devvit.addTrigger({
+  event: 'PostSubmit',
+  async onEvent(event, context) {
+    const now = new Date, author = event.author;
+    if (author) {
+      const authorId = author.id, username = author.name;
+      const timeframe = await context.settings.get<number>('timeframePosts'),
+        expiration = ResolveSecondsAfter(timeframe, now);
+      if (!await context.redis.exists(`allotedPostsInTime-${authorId}`))
+        await context.redis.set(`allotedPostsInTime-${authorId}`, '0', { expiration });
+      const posts = await context.redis.incrBy(`allotedPostsInTime-${authorId}`, 1),
+        maxAllottedPosts = (await context.settings.get<number>('numberOfPosts'))!,
+        duration = (await context.settings.get<number>('BanTimePosts'))!;
+      // if its NaN, its guaraenteed to be false.
+      if (posts >= maxAllottedPosts && (await context.settings.get<number>('postsEnabled') && duration)) {
+        const message = (await context.settings.get<string>('numberOfPosts')) || messageUponBanPost,
+          reason = `Send More than ${maxAllottedPosts} in ${timeframe} seconds`;
+        await (await context.reddit.getCurrentSubreddit()).banUser({
+          reason, username, message, duration, note: reason,
+        });
       }
     }
   },
@@ -221,8 +299,8 @@ function validateRangeInt(variable: string, minInclusive: number, maxInclusive: 
     try {
       // @ts-expect-error
       const b = BigInt(value); if (allow0) if (b === 0n) return undefined;
-      if (b < minInclusive) throw new RangeError(`${variable} must be greater than ${minInclusive}, received ${b}`);
-      if (b > maxInclusive) throw new RangeError(`${variable} must be less than ${maxInclusive}, received ${b}`);
+      if (b < minInclusive) throw RangeError(`${variable} must be greater than ${minInclusive}, received ${b}`);
+      if (b > maxInclusive) throw RangeError(`${variable} must be less than ${maxInclusive}, received ${b}`);
     } catch (err) {
       return String(err);
     } return undefined;
