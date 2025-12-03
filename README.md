@@ -22,4 +22,10 @@ note that it may not immdietly work if the user is fast
 
 ## changelog
 
-im starting this after the first approval
+### 0.0.10 and 0.0.11
+
+posts can be used to ban now.
+
+### before 0.0.10
+
+initial release
