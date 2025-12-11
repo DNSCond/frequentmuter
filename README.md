@@ -24,7 +24,9 @@ Some users type faster then the app can act, so note that at times the app may a
 
 ## changelog
 
-### 0.0.12, 0.0.13, 0.0.14, 0.0.15, 0.0.16: Updated ReadME
+### 0.0.17: updated default mute message and readme.
+
+### 0.0.12, to 0.0.16: Updated ReadME
 
 thanks to [SampleOfNone](https://discord.com/users/894324211735199835)
 and [KockaAdmiralac](https://discord.com/users/148231501413089280) in

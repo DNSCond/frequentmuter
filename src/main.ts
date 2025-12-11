@@ -4,8 +4,8 @@ import { EXMAScript, jsonEncode } from "anthelpers";
 
 Devvit.configure({ redditAPI: true, redis: true });
 const OneDayInSeconds = 86400, OneHourInSeconds = 3600;
-const defaultValue = "You have been muted for spamming this subreddit\'s modmail (exceeding a message in time treshold)." +
-  "\n\nplease make sure to think before you speak and send 1 message with everything you have to say instead of several.",
+const defaultValue = "You have been temporarily muted for flooding this subreddit's modmail with messages.\n\nPlease " +
+  "make sure to send 1 message with everything you have to say or ask and give mods the time and opportunity to reply",
   messageUponBanPost = 'You have been Banned for spamming this subreddit.';
 Devvit.addSettings([
   {
