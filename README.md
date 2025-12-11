@@ -20,7 +20,7 @@ It resets once you've replied in modmail or Y time has passed. Note, the tracker
 
 Some users type faster then the app can act, so note that at times the app may appear to respond slow.
 
-Source code can be found at: https://github.com/DNSCond/frequentmuter.git
+[Source code can be found at: https://github.com/DNSCond/frequentmuter](https://github.com/DNSCond/frequentmuter)
 
 ## changelog
 
