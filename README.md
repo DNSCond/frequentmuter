@@ -2,9 +2,9 @@
 
 Since reddit moved fully to reddit chat, some users use modmail as chat.
 
-for example;
+for example;  
 Hey  
-wil  
+will  
 be  
 short  
 fast  
@@ -24,7 +24,11 @@ Some users type faster then the app can act, so note that at times the app may a
 
 ## changelog
 
-### 0.0.12: Updated ReadME
+### 0.0.12, 0.0.13, 0.0.14, 0.0.15: Updated ReadME
+
+thanks to [SampleOfNone](https://discord.com/users/894324211735199835)
+and [KockaAdmiralac](https://discord.com/users/148231501413089280) in
+the devvit discord for helping me.
 
 ### 0.0.10 - 0.0.11
 
