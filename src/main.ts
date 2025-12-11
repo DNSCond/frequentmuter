@@ -6,7 +6,12 @@ Devvit.configure({ redditAPI: true, redis: true });
 const OneDayInSeconds = 86400, OneHourInSeconds = 3600;
 const defaultValue = "You have been temporarily muted for flooding this subreddit's modmail with messages.\n\nPlease " +
   "make sure to send 1 message with everything you have to say or ask and give mods the time and opportunity to reply",
-  messageUponBanPost = 'You have been Banned for spamming this subreddit.';
+  messageUponBanPost = 'You have been Banned for spamming this subreddit.',
+  defaultwarning = 'Hi, the modmail interface has migrated to Reddit Chat recently. ' +
+    'Despite this change, **treating modmail as a chatroom is generally frowned upon.** ' +
+    'Please form your full message before sending it to the moderators, because it would otherwise be seen as modmail spam.' +
+    ' If you\'re on desktop, you can use Ctrl+Enter to write a new line before sending your message. '
+    + 'or use another app to format your messages';
 Devvit.addSettings([
   {
     type: 'group',
@@ -16,13 +21,13 @@ Devvit.addSettings([
         type: 'boolean',
         name: 'modmailEnabled',
         label: 'whether to take action for spamming modmail',
-        helpText: `if turned off, no muting will occur, but the count will happend`,
+        helpText: `whether to take action for flooding modmail, if turned off, no muting will occur`,
         defaultValue: true,
       },
       {
         type: 'number',
         name: 'timeframe',
-        label: 'define Y here. must be greater than 300',
+        label: 'Set the time in seconds to calculate if a user is sending more the X messages in Y time (Must be greater then 300)',
         helpText: `1 hour is ${OneHourInSeconds} seconds, 1 day is ${OneDayInSeconds}`,
         defaultValue: OneHourInSeconds, //required: true,
         onValidate: validateRangeInt('Y', 300, Infinity),
@@ -30,15 +35,16 @@ Devvit.addSettings([
       {
         type: 'number',
         name: 'messages',
-        label: 'the number of messages to allow',
-        helpText: 'must be betwen 1 and 20 (define X here)',
+        label: 'Set the number of messages that a user can send in succession before the bot mutes the user',
+        helpText: 'must be a number between 1 and 20',
         defaultValue: 4, //required: true,
-        onValidate: validateRangeInt('X', 1, 20),
+        onValidate: validateRangeInt('X', 1, 40),
       },
       {
         type: 'select',
         name: 'muteTime',
-        label: 'the time to mute (define Z here)',
+        label: 'Set the duration of the mute',
+        helpText: 'When a mod replies to the user, the count will reset',
         defaultValue: ['72'],
         //required: true,
         options: [
@@ -50,35 +56,83 @@ Devvit.addSettings([
       {
         type: 'number',
         name: 'muteTimeCustom',
-        label: 'have the bot automatically unmute a user after seconds',
-        helpText: `should not be greater than Z, must be between 17 and ${OneDayInSeconds * 27} inclusive, or 0 to not automatically unmute`,
+        label: 'Set the number of seconds to automatically unmute (needs to be less then the duration of the mute)',
+        helpText: `if the Reddit default mute options are too long, use this setting to shorten the mute,`
+          + `must be between 17 and ${OneDayInSeconds * 27} inclusive, or 0 to not automatically unmute`,
         defaultValue: 0, //required: true,
         onValidate: validateRangeInt('X', 17, OneDayInSeconds * 27, true),
       },
       {
         type: 'paragraph',
         name: 'messageUponMute',
-        label: 'a message to send when the author gets muted. not including the default',
+        label: 'The message that will be send when the user is muted',
         helpText: 'supports modmail markdown',
         defaultValue,
+      },
+      {
+        type: 'group',
+        label: 'Additional settings to warn a user first',
+        helpText: 'send X messages in modmail in Y seconds and receive a warning. (make sure these settings'
+          + ' happen earlier than the mute settings as otherwise themwarn will not ahppen)',
+        fields: [
+          {
+            type: 'boolean',
+            name: 'warningModmailEnabled',
+            label: 'whether to warn the user for spamming modmail',
+            helpText: `if turned off, no warning will occur, but the count will happen`,
+            defaultValue: false,
+          },
+          {
+            type: 'number',
+            name: 'timeframeWarning',
+            label: 'define Y here. must be greater than 300',
+            helpText: `1 hour is ${OneHourInSeconds} seconds, 1 day is ${OneDayInSeconds}`,
+            defaultValue: OneHourInSeconds * 2, //required: true,
+            onValidate: validateRangeInt('Y', 300, Infinity),
+          },
+          {
+            type: 'number',
+            name: 'messagesWarning',
+            label: 'Set the number of messages that a user can send in succession before the bot sends a warning',
+            helpText: 'must be a number between 1 and 20',
+            defaultValue: 3, //required: true,
+            onValidate: validateRangeInt('X', 1, 20),
+          },
+          {
+            type: 'number',
+            name: 'warningLastsFor',
+            label: 'how long the warning should last for',
+            helpText: 'in seconds',
+            defaultValue: 6 * 60, //required: true,
+            onValidate: validateRangeInt('X', 1 * 60, 20 * 60),
+          },
+          {
+            type: 'paragraph',
+            name: 'messageUponWarn',
+            label: 'a message to send when the author gets muted. not including the default',
+            helpText: 'supports modmail markdown',
+            defaultValue: defaultwarning,
+          },
+        ],
       },
     ],
   },
   {
     type: 'group',
     label: 'create X Posts in Y seconds and receive a Z Ban',
+    helpText:'these settings are intented to handle egregious cases (like 25 posts in 10 seconds), other bots can be used for less punishing cases.',
     fields: [
       {
         type: 'boolean',
         name: 'postsEnabled',
         label: 'whether to take action for spamming posts',
-        helpText: `if turned off, no bamning will occur for posts, but the count will happend`,
+        helpText: `If turned off, the bot will not ban`,
         defaultValue: false,
       },
       {
         type: 'number',
         name: 'timeframePosts',
-        label: 'define Y here. must be greater than 100',
+        label: 'Set the time in seconds to calculate if a user is ssubmitting more the X posts in Y time ( Must be greater then 100)',
         helpText: `1 hour is ${OneHourInSeconds} seconds, 1 day is ${OneDayInSeconds}`,
         defaultValue: OneHourInSeconds, //required: true,
         onValidate: validateRangeInt('PostY', 100, Infinity),
@@ -86,23 +140,23 @@ Devvit.addSettings([
       {
         type: 'number',
         name: 'numberOfPosts',
-        label: 'the number of posts to allow',
+        label: 'Set the number of posts to allow within the set time (must be a number between 1 and 1000)',
         helpText: 'must be betwen 1 and 100 (define X here)',
-        defaultValue: 7, //required: true,
-        onValidate: validateRangeInt('PostX', 1, 100),
+        defaultValue: 12, //required: true,
+        onValidate: validateRangeInt('PostX', 1, 1000),
       },
       {
         type: 'number',
         name: 'BanTimePosts',
         label: 'the time to Ban in days (define Z here)',
-        helpText: 'must be betwen 1 and 20 (define Z here) or 0 to not ban',
-        defaultValue: 0, //required: true,
+        helpText: 'Set the duration of the ban in days(must be a number between 1 and 20) Set to 0 to not ban',
+        defaultValue: 2, //required: true,
         onValidate: validateRangeInt('PostZ', 1, 20, true),
       },
       {
         type: 'paragraph',
         name: 'messageUponBanPost',
-        label: 'a message to send when the author gets banned for spamming posts. not including the default',
+        label: 'The message that will be send when the user is banned',
         helpText: 'supports modmail markdown',
         defaultValue: messageUponBanPost,
       },
@@ -114,7 +168,7 @@ Devvit.addTrigger({
   event: 'ModMail',
   async onEvent(event: ModMail, context: TriggerContext) {
     // devvit discord: <https://discord.com/channels/1050224141732687912/1131417992706674818/1428412048911503471>
-    const messageHandledKey = `messageHandled:${event.messageId}`;
+    const messageHandledKey = `messageHandled:${event.messageId}`, now = new Date;
     if (await context.redis.exists(messageHandledKey)) {
       return;
     }
@@ -137,7 +191,7 @@ Devvit.addTrigger({
       isAdmin = Boolean(Object(currentMessage.author).isAdmin);
     const conversationId = event.conversationId.split(/_/)[1];
     const userId = event.messageAuthor.id, username = event.messageAuthor.name;
-    const { key, muteDurationRedisKey } = getKeyFromUserId(userId);
+    const { key, muteDurationRedisKey, warningKey } = getKeyFromUserId(userId);
     const { redis } = context;
     if (isMod || isAdmin) {
       if (isMod) {
@@ -149,14 +203,31 @@ Devvit.addTrigger({
       }
       return;
     }
-    const timeframe = await context.settings.get('timeframe');
-    if (!timeframe) return;
+
+    const hasReceivedWarning = !!await redis.get(warningKey);
+    const timeframe = hasReceivedWarning ? (await context.settings.get('timeframe'))
+      : (await context.settings.get('timeframeWarning')); if (!timeframe) return;
     const messagesSent = await redis.incrBy(key, 1);
     await redis.expire(key, +timeframe);
     const messagesRequireMent = await context.settings.get<number>('messages'),
       muteTimeCustom = +(await context.settings.get<number>('muteTimeCustom') as number),
       muteTime = +(await context.settings.get('muteTime'))!, hasCustom = !!(muteTimeCustom),
       modmailEnabled = (await context.settings.get<boolean>('modmailEnabled'));
+
+    if (await context.settings.get('warningModmailEnabled')) {
+      const messagesRequireMent = await context.settings.get<number>('messages'),
+        warningLastsFor = (await context.settings.get<number>('warningLastsFor')) || (6 * 60);
+      if (messagesRequireMent && !hasReceivedWarning) {
+        if (messagesSent > messagesRequireMent) {
+          await redis.set(warningKey, now.toISOString(), { expiration: ResolveSecondsAfter(warningLastsFor, now) })
+          const body = (await context.settings.get<string>('messageUponWarn')) || defaultwarning;
+          await context.reddit.modMail.reply({
+            body, conversationId,
+            isAuthorHidden: true,
+          }); return;
+        }
+      }
+    }
     if (messagesRequireMent && muteTime) {
       if (messagesSent > messagesRequireMent && modmailEnabled) {
         const now = Date.now(), runAt = ResolveSecondsAfter(muteTimeCustom, now);
@@ -225,16 +296,18 @@ Devvit.addSchedulerJob({
 });
 
 function getKeyFromUserId(userId?: string) {
-  const key = `userId-${userId}`, muteDurationRedisKey = key + '-muteDuration';
-  return { key, muteDurationRedisKey }; // = getKeyFromUserId(userId);
+  const key = `userId-${userId}`, warningKey = `${userId}-warning`,
+    muteDurationRedisKey = key + '-muteDuration';
+  return { key, muteDurationRedisKey, warningKey }; // = getKeyFromUserId(userId);
 }
 
 async function removeRedisKey(userId: string | undefined, { redis, scheduler }: TriggerContext) {
-  const { key, muteDurationRedisKey } = getKeyFromUserId(userId);
+  const { key, muteDurationRedisKey, warningKey } = getKeyFromUserId(userId);
   console.log('removed', printLn({ userId }), 'from redis');
 
   const jobIdJson = await redis.get(muteDurationRedisKey);
   await redis.del(key); await redis.del(muteDurationRedisKey);
+  await redis.del(warningKey);
   if (jobIdJson) {
     const jobId = JSON.parse(jobIdJson)['jobId'];
     await scheduler.cancelJob(jobId);

@@ -24,7 +24,16 @@ Some users type faster then the app can act, so note that at times the app may a
 
 ## changelog
 
+### 0.0.20: The Warning Before The Mute
+
+- updated default mute and ban messages.
+- the bot can now warn a user about rapid messaging before muting.
+  - this warning is disabled by default.
+  - the warning can be configured by the mods.
+
 ### 0.0.17: updated default mute message and readme.
+
+- updated default mute message and readme.
 
 ### 0.0.12, to 0.0.16: Updated ReadME
 
