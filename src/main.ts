@@ -73,7 +73,7 @@ Devvit.addSettings([
         type: 'group',
         label: 'Additional settings to warn a user first',
         helpText: 'send X messages in modmail in Y seconds and receive a warning. (make sure these settings'
-          + ' happen earlier than the mute settings as otherwise themwarn will not ahppen)',
+          + ' happen earlier than the mute settings as otherwise the warn will not happen)',
         fields: [
           {
             type: 'boolean',
@@ -109,7 +109,7 @@ Devvit.addSettings([
           {
             type: 'paragraph',
             name: 'messageUponWarn',
-            label: 'a message to send when the author gets muted. not including the default',
+            label: 'Sets the message that is given upon warning before the mute.',
             helpText: 'supports modmail markdown',
             defaultValue: defaultwarning,
           },
