@@ -12,7 +12,7 @@ and
 feel  
 spammy
 
-This can flood modmail and doesn't give mods time to formulate a reply. This app will help with that by muting users, stopping them from sending more messages. The app will mute users who send X messages in Y seconds, and will give them a Z mute.
+This app will help with that by sending a (customizable) message to the user followed by a mute, stopping them from sending more messages. The app will mute users who send X messages in Y seconds, and will give them a Z mute.
 
 You can set X, Y (in seconds) and Z in the settings of the app.
 
@@ -24,11 +24,11 @@ Some users type faster then the app can act, so note that at times the app may a
 
 ## changelog
 
-### 0.0.12, 0.0.13, 0.0.14, 0.0.15: Updated ReadME
+### 0.0.12, 0.0.13, 0.0.14, 0.0.15, 0.0.16: Updated ReadME
 
 thanks to [SampleOfNone](https://discord.com/users/894324211735199835)
 and [KockaAdmiralac](https://discord.com/users/148231501413089280) in
-the devvit discord for helping me.
+the devvit discord for helping me write the readme.
 
 ### 0.0.10 - 0.0.11
 
